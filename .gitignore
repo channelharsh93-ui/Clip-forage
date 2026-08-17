@@ -1,0 +1,15 @@
+backend/.venv/
+backend/storage/projects/
+backend/storage/analysis/
+backend/storage/*.sqlite3
+backend/storage/.token_key
+backend/storage/library/music/*
+backend/storage/library/sfx/*
+backend/storage/library/logos/*
+frontend/node_modules/
+frontend/dist/
+frontend/tsconfig.tsbuildinfo
+__pycache__/
+.pytest_cache/
+*.pyc
+.env
