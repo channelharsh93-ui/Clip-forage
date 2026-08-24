@@ -32,7 +32,8 @@ def validate_email(email: str) -> str:
     if len(clean) > 254 or not EMAIL_PATTERN.match(clean):
         raise ValueError("Enter a valid email address.")
     return clean
-
+- from config import DB_PATH, ensure_storage
++ from .config import DB_PATH, ensure_storage
 
 def validate_password(password: str) -> str:
     if len(password) < 8 or len(password) > 200:
