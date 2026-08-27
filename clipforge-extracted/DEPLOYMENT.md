@@ -4,11 +4,11 @@
 
 Deploy in three stages:
 
-1. **Now — local single-user deployment.** The current build is ready for local use and private testing. Keep `USER_PLAN=free`, `PRIVACY_MODE=true`, and `ALLOW_OFFICIAL_APIS=false` while validating real podcast, interview, gaming, comedy, and action-heavy videos.
-2. **After acceptance testing — private LAN deployment.** Share it only with trusted users on the same network or through a private VPN. Confirm uploads, transcription, rendering, downloads, storage cleanup, and rights acknowledgement first.
-3. **Only after security work — public deployment.** Authentication, secure sessions, CSRF checks, and per-user project scope are now included, but public multi-user operation still needs production hardening, backups, rate limits, and a durable worker/database plan. Do not expose the development server directly to the public Internet.
+1. **Now — local single-user deployment.** The current build is ready for local use and private testing. Keep `USER_PLAN=free`, `PRIVACY_MODE=true`, and `ALLOW_OFFICIAL_APIS=false` while validati[...]
+2. **After acceptance testing — private LAN deployment.** Share it only with trusted users on the same network or through a private VPN. Confirm uploads, transcription, rendering, downloads, stor[...]
+3. **Only after security work — public deployment.** Authentication, secure sessions, CSRF checks, and per-user project scope are now included, but public multi-user operation still needs product[...]
 
-The Pro plan is a catalog/entitlement architecture. Razorpay is now available as an optional provider, but it remains disabled with `PAYMENT_PROVIDER=none` until you deliberately configure server-only test/live keys and an HTTPS webhook. Do not set `USER_PLAN=pro` for customers; activate access only from verified billing state.
+The Pro plan is a catalog/entitlement architecture. Razorpay is now available as an optional provider, but it remains disabled with `PAYMENT_PROVIDER=none` until you deliberately configure server-[...]
 
 ## Option A: local deployment on one computer
 
@@ -42,7 +42,7 @@ MAX_FILE_SIZE_MB=1000
 MAX_STORAGE_GB=20
 ```
 
-`MAX_CLIPS` is the Free daily/project cap and is reflected by `GET /api/plans`. The default Free plan also allows 2 processing jobs per day (`FREE_PLAN_VIDEOS=2`). Lower these on a small computer. Keep `STORAGE_ROOT` and `DATABASE_PATH` on a persistent local disk if the project directory is not persistent.
+`MAX_CLIPS` is the Free daily/project cap and is reflected by `GET /api/plans`. The default Free plan also allows 2 processing jobs per day (`FREE_PLAN_VIDEOS=2`). Lower these on a small computer.[...]
 
 ### 3. Install and start the API
 
@@ -66,7 +66,7 @@ For a first smoke test without the optional Whisper dependency:
 pip install -r requirements-minimal.txt
 ```
 
-The minimal installation will honestly report that local transcription is unavailable; it does not invent captions. The full installation may download the configured open-source Whisper model the first time transcription runs.
+The minimal installation will honestly report that local transcription is unavailable; it does not invent captions. The full installation may download the configured open-source Whisper model the [...]
 
 Check the API:
 
@@ -125,27 +125,25 @@ Do not forward ports from the router. Keep Privacy Mode on and leave official so
 
 ## Option C: Vercel frontend + separate FastAPI API
 
-Vercel can host the Vite frontend, but it cannot run this long-running FFmpeg/SQLite/Whisper backend as a static frontend deployment. Deploy the backend separately on a persistent Python host or your own server.
+Vercel can host the Vite frontend, but it cannot run this long-running FFmpeg/SQLite/Whisper backend as a static frontend deployment. Deploy the backend separately on a persistent Python host or Render.
 
 ### Vercel project settings
 
 Use one deployment layout only:
 
-- Import this repository and set Vercel **Root Directory** to `frontend`.
+- Import this repository and set Vercel **Root Directory** to `clipforge-extracted/frontend`.
 - Framework Preset: **Vite**
 - Install Command: `npm install`
 - Build Command: `npm run build`
 - Output Directory: `dist`
 
-The included `frontend/vercel.json` handles SPA routes. There is intentionally no root-level Vite entry point or root-level `vercel.json`; Vercel must build from `frontend`.
+The included `frontend/vercel.json` handles SPA routes and proxies `/api/*` requests to your backend. There is intentionally no root-level Vite entry point or root-level `vercel.json`; Vercel must build from `frontend`.
 
-Set this Vercel environment variable to the public backend URL:
+**Do NOT set `VITE_API_BASE_URL` in Vercel environment variables.** Leave it unset. The `vercel.json` rewrite rule handles all `/api/*` proxying to your backend automatically.
 
-```env
-VITE_API_BASE_URL=https://api.example.com
-```
+### Backend environment variables
 
-Set the backend environment variables to the Vercel origin:
+Set these on the backend host (e.g., Render):
 
 ```env
 FRONTEND_ORIGIN=https://your-project.vercel.app
@@ -154,19 +152,40 @@ SESSION_COOKIE_SECURE=true
 AUTH_REQUIRED=true
 ```
 
-The Vercel rewrite fixes browser refreshes for `/app`, `/verify-email`, `/reset-password`, and `/magic-login`. It does **not** replace the FastAPI backend or proxy uploads by itself. `VITE_API_BASE_URL` makes authentication, upload, media, billing, and API requests reach the separate backend.
+### How the proxy works
+
+The `frontend/vercel.json` contains:
+
+```json
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://clipforge-backend.onrender.com/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+```
+
+1. All requests to `/api/*` are rewritten to your backend URL (e.g., Render).
+2. All other requests fall back to `/index.html` for SPA routing.
+3. The frontend uses relative paths like `/api/auth/login`, which Vercel rewrites transparently.
 
 After deployment, verify:
 
 ```bash
-curl https://api.example.com/api/health
+curl https://clipforge-backend.onrender.com/api/health
 curl https://your-project.vercel.app/
 ```
 
 Configure the Razorpay webhook against the API host, not the Vercel static host:
 
 ```text
-https://api.example.com/api/billing/webhook/razorpay
+https://clipforge-backend.onrender.com/api/billing/webhook/razorpay
 ```
 
 ## Option D: private production-style deployment with Nginx
@@ -253,7 +272,7 @@ Configure the Razorpay webhook URL:
 https://your-domain.example/api/billing/webhook/razorpay
 ```
 
-Use the webhook secret in `RAZORPAY_WEBHOOK_SECRET`. The backend validates the raw-body HMAC signature, uses `x-razorpay-event-id` for idempotency, checks captured payment state, and activates Pro only after verification. Never put `RAZORPAY_KEY_SECRET` or `RAZORPAY_WEBHOOK_SECRET` in frontend code or Git.
+Use the webhook secret in `RAZORPAY_WEBHOOK_SECRET`. The backend validates the raw-body HMAC signature, uses `x-razorpay-event-id` for idempotency, checks captured payment state, and activates Pr[...]
 
 ## Before public deployment
 
