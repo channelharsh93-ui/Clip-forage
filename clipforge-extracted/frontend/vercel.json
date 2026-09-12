@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://clipforge-backend.onrender.com/api/$1"
+      "destination": "https://clip-forage-i.onrender.com/api/$1"
     },
     {
       "source": "/(.*)",
