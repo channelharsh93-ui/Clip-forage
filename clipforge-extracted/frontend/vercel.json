@@ -5,8 +5,8 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "https://clip-forage-i.onrender.com/api/$1"
+      "source": "/api/:path*",
+      "destination": "https://clip-forage-i.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",
